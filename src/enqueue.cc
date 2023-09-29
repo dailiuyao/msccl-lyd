@@ -479,6 +479,7 @@ static ncclResult_t getAlgoInfo(struct ncclInfo* info, int collNetTypeSupport, i
       WARN("Error : no algorithm/protocol available");
       return ncclInternalError;
     }
+    printf("\n[INFO LYD]: The chosen algorithm is: %d\n", info->algorithm);
     //if (comm->rank == 0) INFO(NCCL_TUNING, "%ld Bytes -> Algo %d proto %d time %f", info->nBytes, info->algorithm, info->protocol, minTime);
     TRACE(NCCL_COLL, "%ld Bytes -> Algo %d proto %d time %f", info->nBytes, info->algorithm, info->protocol, minTime);
   }
