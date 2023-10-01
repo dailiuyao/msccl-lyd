@@ -352,11 +352,22 @@ ncclResult_t ncclTopoGetMSCCLAlgo(struct ncclInfo* info) {
         struct mscclRegistration *reg = &mscclHostComm->mscclRegistrations[i];
         if (reg->minBytes <= info->nBytes && (info->nBytes < reg->maxBytes || reg->maxBytes == -1)) {
           struct mscclAlgorithm* mscclAlgo = &mscclHostComm->mscclDevComm.mscclAlgos[reg->algoIndex];
+          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->isValid is: %d\n", mscclAlgo->isValid);
+          // printf("\n [TopoGet1_LYD INFO]info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol] is: %d\n", info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol]);
+          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->collectiveType is: %d\n", mscclAlgo->collectiveType);
+          // printf("\n [TopoGet1_LYD INFO]info->coll is: %d\n", info->coll);
+          // printf("\n [TopoGet1_LYD INFO]inPlace is: %d\n", inPlace);
+          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->inPlace is: %d\n", mscclAlgo->inPlace);
+          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->ngpus is: %d\n", mscclAlgo->ngpus);
+          // printf("\n [TopoGet1_LYD INFO]info->comm->nRanks is: %d\n", info->comm->nRanks);
+          // printf("\n [TopoGet1_LYD INFO]totalCount is: %d\n", totalCount);
+          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->nchunksPerLoop is: %d\n", mscclAlgo->nchunksPerLoop);
           if ((mscclAlgo->isValid) && (info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol] > 0) && (mscclAlgo->collectiveType == info->coll) 
               && (inPlace == mscclAlgo->inPlace) && (mscclAlgo->ngpus == info->comm->nRanks) && ((totalCount % mscclAlgo->nchunksPerLoop) == 0)) {
             info->algorithm = NCCL_ALGO_MSCCL;
             info->protocol = reg->protocol;
             info->mscclInfo.mscclAlgoIndex = reg->algoIndex;
+            // printf("\n[TopoGet1_LYD INFO]info->algorithm is: %d\n", info->algorithm);
             return ncclSuccess;
           }
         }
@@ -364,12 +375,26 @@ ncclResult_t ncclTopoGetMSCCLAlgo(struct ncclInfo* info) {
     } else {
       for (int i=0; i<mscclHostComm->numberOfMSCCLAlgorithms; i++){
         struct mscclAlgorithm* mscclAlgo = &mscclHostComm->mscclDevComm.mscclAlgos[i];
+        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->isValid is: %d\n", mscclAlgo->isValid);
+        // printf("\n [TopoGet2_LYD INFO]info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol] is: %d\n", info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol]);
+        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->collectiveType is: %d\n", mscclAlgo->collectiveType);
+        // printf("\n [TopoGet2_LYD INFO]info->coll is: %d\n", info->coll);
+        // printf("\n [TopoGet2_LYD INFO]inPlace is: %d\n", inPlace);
+        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->inPlace is: %d\n", mscclAlgo->inPlace);
+        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->ngpus is: %d\n", mscclAlgo->ngpus);
+        // printf("\n [TopoGet2_LYD INFO]info->comm->nRanks is: %d\n", info->comm->nRanks);
+        // printf("\n [TopoGet2_LYD INFO]totalCount is: %d\n", totalCount);
+        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->nchunksPerLoop is: %d\n", mscclAlgo->nchunksPerLoop);
+        // printf("\n [TopoGet2_LYD INFO]info->nBytes is: %d\n", info->nBytes);
+        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->minBytes is: %d\n", mscclAlgo->minBytes);
+        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->maxBytes is: %d\n", mscclAlgo->maxBytes);
         if ((mscclAlgo->isValid) && (info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol] > 0) 
             && (mscclAlgo->collectiveType == info->coll) && (inPlace == mscclAlgo->inPlace) && (mscclAlgo->ngpus == info->comm->nRanks)
             && ((totalCount % mscclAlgo->nchunksPerLoop) == 0) && (info->nBytes >= mscclAlgo->minBytes) && (info->nBytes < mscclAlgo->maxBytes)) {
           info->algorithm = NCCL_ALGO_MSCCL;
           info->protocol = mscclAlgo->protocol;
           info->mscclInfo.mscclAlgoIndex = i;
+          // printf("\n[TopoGet2_LYD INFO]info->algorithm is: %d\n", info->algorithm);
           return ncclSuccess;
         }
       }

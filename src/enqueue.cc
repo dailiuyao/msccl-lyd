@@ -479,7 +479,7 @@ static ncclResult_t getAlgoInfo(struct ncclInfo* info, int collNetTypeSupport, i
       WARN("Error : no algorithm/protocol available");
       return ncclInternalError;
     }
-    printf("\n[INFO LYD]: The chosen algorithm is: %d\n", info->algorithm);
+    // printf("\n[INFO LYD]: The chosen algorithm is: %d\n", info->algorithm);
     //if (comm->rank == 0) INFO(NCCL_TUNING, "%ld Bytes -> Algo %d proto %d time %f", info->nBytes, info->algorithm, info->protocol, minTime);
     TRACE(NCCL_COLL, "%ld Bytes -> Algo %d proto %d time %f", info->nBytes, info->algorithm, info->protocol, minTime);
   }
@@ -591,11 +591,14 @@ static ncclResult_t checkMSCCLScratchPad(struct ncclInfo* info) {
 
 static ncclResult_t computeColl(struct ncclInfo* info /* input */, struct ncclWorkElem* work, struct ncclProxyOp* proxyOp /* output */) {
   int collNetTypeSupport = 0;
+  // printf("\nstep1: alorithm is: %d\n", info->algorithm);
   // Check whether algo and proto have been preset (as in aggregation case)
   // If so, skip the calculation
   if (info->nChannels > 0 && info->nThreads > 0) goto comp_next;
   NCCLCHECK(getCollNetSupport(info, &collNetTypeSupport));
+  // printf("\nstep2: alorithm is: %d\n", info->algorithm);
   NCCLCHECK(getAlgoInfo(info, collNetTypeSupport, 1));
+  // printf("\nstep3: alorithm is: %d\n", info->algorithm);
 
 comp_next:
   // in case we got here from aggregation case, set mscclAlgoIndex to -1
