@@ -400,10 +400,10 @@ ncclResult_t ncclTopoGetMSCCLAlgo(struct ncclInfo* info) {
         }
         // force algo to msccl by LYD
         // if ((mscclAlgo->isValid) && (inPlace == mscclAlgo->inPlace)) {
-        info->algorithm = NCCL_ALGO_MSCCL;
-        info->protocol = mscclAlgo->protocol;
-        info->mscclInfo.mscclAlgoIndex = i; 
-        return ncclSuccess; 
+        // info->algorithm = NCCL_ALGO_MSCCL;
+        // info->protocol = mscclAlgo->protocol;
+        // info->mscclInfo.mscclAlgoIndex = i; 
+        // return ncclSuccess; 
         // }
       }
     }

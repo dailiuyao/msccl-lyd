@@ -802,8 +802,8 @@ ncclResult_t mscclGetAlgoFromXMLAndSetAlgo(const char* str, struct mscclAlgorith
   if (maxBytesExists) {
     NCCLCHECK(xmlGetAttrInt64_t(topNode, "maxBytes", &maxBytes));
   } else {
-    maxBytes = (((int64_t)1)<<27); // set max to 128 MB which is sufficient for now.
-    // maxBytes = (((int64_t)1)<<30); // set max to 512 MB by LYD.
+    // maxBytes = (((int64_t)1)<<27); // set max to 128 MB which is sufficient for now.
+    maxBytes = (((int64_t)1)<<30); // set max to 512 MB by LYD.
   }
   if (minBytes > maxBytes) {
     WARN("MSCCL: minBytes cannot be greater than maxBytes.");
