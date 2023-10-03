@@ -394,17 +394,15 @@ ncclResult_t ncclTopoGetMSCCLAlgo(struct ncclInfo* info) {
           info->algorithm = NCCL_ALGO_MSCCL;
           info->protocol = mscclAlgo->protocol;
           info->mscclInfo.mscclAlgoIndex = i;
-          // printf("\n[TopoGet2_LYD INFO]info->algorithm is: %d\n", info->algorithm);
+          // printf("\n[TopoGet2_LYD/home/ldai8/bash/megatron/megatron1_large_model_parallel INFO]info->algorithm is: %d\n", info->algorithm);
           // printf("\n[TopoGet2_LYD INFO]info->mscclInfo.mscclAlgoIndex is: %d\n", info->mscclInfo.mscclAlgoIndex);
           return ncclSuccess;
         }
         // force algo to msccl by LYD
-        // if ((mscclAlgo->isValid) && (inPlace == mscclAlgo->inPlace)) {
-        info->algorithm = NCCL_ALGO_MSCCL;
-        info->protocol = mscclAlgo->protocol;
-        info->mscclInfo.mscclAlgoIndex = i; 
-        return ncclSuccess; 
-        // }
+        // info->algorithm = NCCL_ALGO_MSCCL;
+        // info->protocol = mscclAlgo->protocol;
+        // info->mscclInfo.mscclAlgoIndex = i; 
+        // return ncclSuccess; 
       }
     }
   }
