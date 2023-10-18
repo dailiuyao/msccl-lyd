@@ -15,7 +15,7 @@ fi
 
 targets="GENOBJS := \\\\\n"
 
-for base in sendrecv all_reduce all_gather broadcast reduce reduce_scatter all_to_all custom_collective; do
+for base in sendrecv all_reduce all_gather broadcast reduce reduce_scatter; do
   opn=0
   for op in sum prod min max premulsum sumpostdiv; do
     dtn=0

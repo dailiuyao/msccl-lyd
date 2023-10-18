@@ -19,7 +19,6 @@ typedef enum : uint8_t {
   ncclPatternTreeUp,
   ncclPatternTreeDown,
   ncclPatternTreeUpDown,
-  ncclPatternMSCCL,
   ncclPatternCollTreeUpDown,
   ncclPatternSend,
   ncclPatternRecv
@@ -53,8 +52,6 @@ struct ncclInfo {
   int nchunksPerLoop;
   int chunkSize;
   int channelId;
-
-  struct mscclWorkInfo mscclInfo;
 };
 
 #endif

@@ -169,7 +169,7 @@ ncclResult_t xmlLoadSub(FILE* file, struct ncclXml* xml, struct ncclXmlNode* hea
   if (head && head->type == NODE_TYPE_SINGLE) return ncclSuccess;
   while (1) {
     if (xml->maxIndex == MAX_NODES) {
-      WARN("Error : XML parser is limited to %d nodes", MAX_NODES);
+      WARN("Error : XML parser is limited to 1024 nodes");
       return ncclInternalError;
     }
     struct ncclXmlNode* node = xml->nodes+xml->maxIndex;
@@ -837,79 +837,6 @@ ncclResult_t ncclTopoGetXmlGraphFromFile(const char* xmlGraphFile, struct ncclXm
     return ncclSystemError;
   }
   struct xmlHandler handlers[] = { { "graphs", ncclTopoXmlGraphLoadGraphs } };
-  xml->maxIndex = 0;
-  NCCLCHECK(xmlLoadSub(file, xml, NULL, handlers, 1));
-  fclose(file);
-  return ncclSuccess;
-}
-
-/**************************/
-/* MSCCL XML File Parsers */
-/**************************/
-
-ncclResult_t mscclAlgoXmlStep(FILE* file, struct ncclXml* xml, struct ncclXmlNode* head) {
-  NCCLCHECK(xmlLoadSub(file, xml, head, NULL, 1));
-  return ncclSuccess;
-}
-
-ncclResult_t mscclAlgoXmlthreadblock(FILE* file, struct ncclXml* xmlGraph, struct ncclXmlNode* head) {
-  struct xmlHandler handlers[] = { { "step", mscclAlgoXmlStep } };
-  NCCLCHECK(xmlLoadSub(file, xmlGraph, head, handlers, 1));
-  return ncclSuccess;
-}
-
-static int myrank;
-
-ncclResult_t mscclAlgoXmlGpu(FILE* file, struct ncclXml* xmlGraph, struct ncclXmlNode* head) {
-  int thisrank;
-  NCCLCHECK(xmlGetAttrInt(head, "id", &thisrank));
-  if (thisrank == myrank){
-    struct xmlHandler handlers[] = { { "tb", mscclAlgoXmlthreadblock } };
-    NCCLCHECK(xmlLoadSub(file, xmlGraph, head, handlers, 1));
-  } else {
-    NCCLCHECK(xmlLoadSub(file, xmlGraph, head, NULL, 0));
-  }
-  return ncclSuccess;
-}
-
-ncclResult_t mscclAlgoXmlLoad(FILE* file, struct ncclXml* xmlGraph, struct ncclXmlNode* head) {
-  struct xmlHandler handlers[] = { { "gpu", mscclAlgoXmlGpu } };
-  NCCLCHECK(xmlLoadSub(file, xmlGraph, head, handlers, 1));
-  return ncclSuccess;
-}
-
-ncclResult_t mscclGetXmlAlgoFromFile(const char* xmlGraphFile, struct ncclXml* xml, int inMyrank) {
-  myrank = inMyrank;
-  FILE* file = fopen(xmlGraphFile, "r");
-  if (file == NULL) {
-    WARN("Could not open XML MSCCL graph file %s : %s", xmlGraphFile, strerror(errno));
-    return ncclSystemError;
-  }
-  struct xmlHandler handlers[] = { { "algo", mscclAlgoXmlLoad } };
-  xml->maxIndex = 0;
-  NCCLCHECK(xmlLoadSub(file, xml, NULL, handlers, 1));
-  fclose(file);
-  return ncclSuccess;
-}
-
-ncclResult_t mscclConfigXmlLoad(FILE* file, struct ncclXml* xmlGraph, struct ncclXmlNode* head) {
-  NCCLCHECK(xmlLoadSub(file, xmlGraph, head, NULL, 1));
-  return ncclSuccess;
-}
-
-ncclResult_t mscclConfigXmlMscclAlgos(FILE* file, struct ncclXml* xmlGraph, struct ncclXmlNode* head) {
-  struct xmlHandler handlers[] = { { "load", mscclConfigXmlLoad } };
-  NCCLCHECK(xmlLoadSub(file, xmlGraph, head, handlers, 1));
-  return ncclSuccess;
-}
-
-ncclResult_t mscclGetXmlConfigFromFile(const char* xmlGraphFile, struct ncclXml* xml) {
-  FILE* file = fopen(xmlGraphFile, "r");
-  if (file == NULL) {
-    WARN("Could not open XML MSCCL config file %s : %s", xmlGraphFile, strerror(errno));
-    return ncclSystemError;
-  }
-  struct xmlHandler handlers[] = { { "msccl_algos", mscclConfigXmlMscclAlgos } };
   xml->maxIndex = 0;
   NCCLCHECK(xmlLoadSub(file, xml, NULL, handlers, 1));
   fclose(file);

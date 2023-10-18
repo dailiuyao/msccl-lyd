@@ -18,7 +18,6 @@ __shared__ ncclShmemData ncclShmem;
 #define NCCL_FUNC4(func, devredop, type, nullify) \
   NCCL_FUNC5(func, TREE,    devredop, type, nullify), \
   NCCL_FUNC5(func, RING,    devredop, type, nullify), \
-  NCCL_FUNC5(func, MSCCL,   devredop, type, nullify), \
   NCCL_FUNC5(func, COLLNET, devredop, type, nullify)
 
 #if defined(__CUDA_BF16_TYPES_EXIST__)
@@ -109,9 +108,7 @@ __device__ ncclKern_t ncclFuncs[1+ncclNumTypes+NCCL_NUM_FUNCTIONS*ncclNumDevRedO
   NCCL_FUNCS2A(Reduce),
   NCCL_FUNCS2B(AllGather),
   NCCL_FUNCS2A(ReduceScatter),
-  NCCL_FUNCS2A(AllReduce),
-  NCCL_FUNCS2B(AllToAll),
-  NCCL_FUNCS2A(CustomCollective)
+  NCCL_FUNCS2A(AllReduce)
 #endif
 };
 

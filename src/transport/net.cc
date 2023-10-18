@@ -12,7 +12,6 @@
 #include "gdrwrap.h"
 #include "shm.h"
 #include "profiler.h"
-#include "npkit/npkit.h"
 
 static_assert(sizeof(ncclNetHandle_t) <= CONNECT_SIZE, "NET Connect info is too large");
 
@@ -166,8 +165,7 @@ struct setupReq {
 static ncclResult_t sendSetup(struct ncclComm* comm, struct ncclTopoGraph* graph, struct ncclPeerInfo* myInfo, struct ncclPeerInfo* peerInfo, struct ncclConnect* connectInfo, struct ncclConnector* send, int channelId, int connIndex) {
   struct setupReq req;
 
-  // if it is in the setup phase for MSCCL, do not use a shared buffer.
-  send->conn.shared = req.shared = (graph || comm->mscclHostComm.inMSCCLConnectionSetupPhase) ? 0 : ncclParamNetSharedBuffers() != -2 ? ncclParamNetSharedBuffers() : 1;
+  send->conn.shared = req.shared = graph ? 0 : ncclParamNetSharedBuffers() != -2 ? ncclParamNetSharedBuffers() : 1;
   req.channelId = channelId;
   req.connIndex = connIndex;
 
@@ -202,7 +200,7 @@ NCCL_PARAM(GdrCopyFlushEnable, "GDRCOPY_FLUSH_ENABLE", 0);
 static ncclResult_t recvSetup(struct ncclComm* comm, struct ncclTopoGraph* graph, struct ncclPeerInfo* myInfo, struct ncclPeerInfo* peerInfo, struct ncclConnect* connectInfo, struct ncclConnector* recv, int channelId, int connIndex) {
   struct setupReq req;
 
-  recv->conn.shared = req.shared = (graph || comm->mscclHostComm.inMSCCLConnectionSetupPhase) ? 0 : ncclParamNetSharedBuffers() != -2 ? ncclParamNetSharedBuffers() : 1;
+  recv->conn.shared = req.shared = graph ? 0 : ncclParamNetSharedBuffers() != -2 ? ncclParamNetSharedBuffers() : 1;
   req.channelId = channelId;
   req.connIndex = connIndex;
 
@@ -824,9 +822,6 @@ static ncclResult_t sendProxyProgress(struct ncclComm* comm, struct ncclProxyArg
         if (sizesFifo[buffSlot] != -1 && ((*recvTail > (sub->base+sub->transmitted)) || p == NCCL_PROTO_LL)) {
           // We have something to receive, let's check if it's completely ready.
           int size = sizesFifo[buffSlot];
-
-          NPKIT_CPU_PROXY_SAVE_SIZE();
-
           char* buff = resources->shared ? localBuff+resources->recvMem->offsFifo[buffSlot] : localBuff+buffSlot*stepSize;
           int ready = 1;
           if (p == NCCL_PROTO_LL128) {
@@ -856,8 +851,6 @@ static ncclResult_t sendProxyProgress(struct ncclComm* comm, struct ncclProxyArg
             // Data is ready, try to send.
             NCCLCHECK(ncclNetIsend(resources->netSendComm, buff, size, resources->rank, mhandle, sub->requests+buffSlot));
             if (sub->requests[buffSlot] != NULL) {
-              NPKIT_CPU_COLLECT_EVENT(sub->channelId, NPKIT_EVENT_NET_SEND_ENTRY, size, uint64_t(sub->requests+buffSlot)/sizeof(void*));
-
               TRACE(NCCL_NET, "sendProxy [%ld/%d] Isend posted, req %p", sub->transmitted, buffSlot, sub->requests[buffSlot]);
               sizesFifo[buffSlot] = -1;
               // Make sure size is reset to zero before we update the head.
@@ -876,8 +869,6 @@ static ncclResult_t sendProxyProgress(struct ncclComm* comm, struct ncclProxyArg
         int buffSlot = (sub->base+sub->done)%NCCL_STEPS;
         NCCLCHECK(ncclNetTest(sub->requests[buffSlot], &done, NULL));
         if (done) {
-          NPKIT_CPU_COLLECT_EVENT(sub->channelId, NPKIT_EVENT_NET_SEND_EXIT, sub->npKitSizesFifo[buffSlot], uint64_t(sub->requests+buffSlot)/sizeof(void*));
-
           TRACE(NCCL_NET, "sendProxy [%ld/%d] request %p done", sub->done, buffSlot, sub->requests[buffSlot]);
           sub->done += args->sliceSteps;
           for (uint64_t step=sub->done-args->sliceSteps; step<sub->done; step++) ncclProfilingRecord(args, s, step, ncclProxyProfileEnd);
@@ -984,9 +975,6 @@ static ncclResult_t recvProxyProgress(struct ncclComm* comm, struct ncclProxyArg
         if (*requestPtr) {
           for (int i=0; i<subGroup->groupSize; i++) {
             struct ncclProxySubArgs* sub = subGroup+i;
-
-            NPKIT_CPU_COLLECT_EVENT(sub->channelId, NPKIT_EVENT_NET_RECV_ENTRY, sizes[i], uint64_t(sub->requests+(step%NCCL_STEPS))/sizeof(void*));
-
             sub->posted += args->sliceSteps;
             for (uint64_t step=sub->posted-args->sliceSteps; step<sub->posted; step++) ncclProfilingRecord(args, s+i, step, ncclProxyProfileRecvWait);
           }
@@ -1012,9 +1000,6 @@ static ncclResult_t recvProxyProgress(struct ncclComm* comm, struct ncclProxyArg
           for (int i=0; i<NCCL_PROXY_MAX_SUBS; i++) totalSize += sizes[i];
           for (int i=0; i<subGroup->groupSize; i++) {
             struct ncclProxySubArgs* sub = subGroup + i;
-
-            NPKIT_CPU_COLLECT_EVENT(sub->channelId, NPKIT_EVENT_NET_RECV_EXIT, sizes[i], uint64_t(sub->requests+(step%NCCL_STEPS))/sizeof(void*));
-
             sub->received += args->sliceSteps;
             for (uint64_t step=sub->received-args->sliceSteps; step<sub->received; step++) ncclProfilingRecord(args, s+i, step, ncclProxyProfileRecvFlushWait);
             if (step < sub->nsteps) {

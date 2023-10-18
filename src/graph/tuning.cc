@@ -62,11 +62,11 @@ static const float baseLat  [NCCL_NUM_ALGORITHMS][NCCL_NUM_PROTOCOLS] = { { 4.4,
 // Tree/Simple is the latency a 256kB chunk, which is ~ base lat + 256k/12GB/s (+ 256k/12GB/s for the network).
 static float hwLat [3][NCCL_NUM_ALGORITHMS][NCCL_NUM_PROTOCOLS] =
 { /* NVLINK */
-  { /* Tree (LL/LL128/Simple)*/ { .52, 1.25, 28 }, /* Ring (LL/LL128/Simple)*/ { .47, 1.9, 3.4 }, /* MSCCL (LL/LL128/Simple)*/ { 0., 0., 0. }, /* CollNet (LL/LL128/Simple)*/ {  .5, 1.2, 8.0 } },
+  { /* Tree (LL/LL128/Simple)*/ { .52, 1.25, 28 }, /* Ring (LL/LL128/Simple)*/ { .47, 1.9, 3.4 }, /* CollNet (LL/LL128/Simple)*/ {  .5, 1.2, 8.0 } },
   /* PCI */
-  { /* Tree (LL/LL128/Simple)*/ { 1.0, 1.9, 28 }, /* Ring (LL/LL128/Simple)*/ { 1.0, 2.5, 5.7 }, /* MSCCL (LL/LL128/Simple)*/ { 0., 0., 0. }, /* CollNet (LL/LL128/Simple)*/ { 1.0, 1.9, 8.0 } },
+  { /* Tree (LL/LL128/Simple)*/ { 1.0, 1.9, 28 }, /* Ring (LL/LL128/Simple)*/ { 1.0, 2.5, 5.7 }, /* CollNet (LL/LL128/Simple)*/ { 1.0, 1.9, 8.0 } },
   /* NET */
-  { /* Tree (LL/LL128/Simple)*/ { 5.0, 8.5, 28 }, /* Ring (LL/LL128/Simple)*/ { 2.7, 4.0, 28 }, /* MSCCL (LL/LL128/Simple)*/ { 0., 0., 0. }, /* CollNet (LL/LL128/Simple)*/ { 5.0, 5.0, 10.7 } }
+  { /* Tree (LL/LL128/Simple)*/ { 5.0, 8.5, 28 }, /* Ring (LL/LL128/Simple)*/ { 2.7, 4.0, 28 }, /* CollNet (LL/LL128/Simple)*/ { 5.0, 5.0, 10.7 } }
 };
 
 // LL128 max BW per channel
@@ -76,14 +76,14 @@ static const double perChMaxTreeBws[2][3] = { /* Volta (N1/N2/N4) */ {26.5, 18.5
 
 ncclResult_t ncclTopoTuneModel(struct ncclComm* comm, int minCompCap, int maxCompCap, struct ncclTopoGraph* treeGraph, struct ncclTopoGraph* ringGraph, struct ncclTopoGraph* collNetGraph) {
   int simpleDefaultThreads = (ringGraph->speedIntra*ringGraph->nChannels <= PCI_WIDTH) ? 256 : NCCL_SIMPLE_MAX_NTHREADS;
-  comm->maxThreads[NCCL_ALGO_RING][NCCL_PROTO_SIMPLE] = comm->maxThreads[NCCL_ALGO_MSCCL][NCCL_PROTO_SIMPLE] =
+  comm->maxThreads[NCCL_ALGO_RING][NCCL_PROTO_SIMPLE] =
     getNthreads("NCCL_NTHREADS", ncclParamNthreads(), 2*WARP_SIZE, NCCL_SIMPLE_MAX_NTHREADS, simpleDefaultThreads);
-  comm->maxThreads[NCCL_ALGO_TREE][NCCL_PROTO_SIMPLE] = comm->maxThreads[NCCL_ALGO_COLLNET][NCCL_PROTO_SIMPLE] =
+  comm->maxThreads[NCCL_ALGO_TREE][NCCL_PROTO_SIMPLE] =
     getNthreads("NCCL_NTHREADS", ncclParamNthreads(), 2*WARP_SIZE, NCCL_SIMPLE_MAX_NTHREADS, NCCL_SIMPLE_MAX_NTHREADS);
   comm->maxThreads[NCCL_ALGO_COLLNET][NCCL_PROTO_SIMPLE] = NCCL_SIMPLE_MAX_NTHREADS;
-  comm->maxThreads[NCCL_ALGO_RING][NCCL_PROTO_LL] = comm->maxThreads[NCCL_ALGO_TREE][NCCL_PROTO_LL] = comm->maxThreads[NCCL_ALGO_MSCCL][NCCL_PROTO_LL] = comm->maxThreads[NCCL_ALGO_COLLNET][NCCL_PROTO_LL] =
+  comm->maxThreads[NCCL_ALGO_RING][NCCL_PROTO_LL] = comm->maxThreads[NCCL_ALGO_TREE][NCCL_PROTO_LL] = comm->maxThreads[NCCL_ALGO_COLLNET][NCCL_PROTO_LL] =
     getNthreads("NCCL_NTHREADS", ncclParamNthreads(), 2*WARP_SIZE, NCCL_LL_MAX_NTHREADS, NCCL_LL_MAX_NTHREADS);
-  comm->maxThreads[NCCL_ALGO_RING][NCCL_PROTO_LL128] = comm->maxThreads[NCCL_ALGO_TREE][NCCL_PROTO_LL128] = comm->maxThreads[NCCL_ALGO_MSCCL][NCCL_PROTO_LL128] = comm->maxThreads[NCCL_ALGO_COLLNET][NCCL_PROTO_LL128] =
+  comm->maxThreads[NCCL_ALGO_RING][NCCL_PROTO_LL128] = comm->maxThreads[NCCL_ALGO_TREE][NCCL_PROTO_LL128] = comm->maxThreads[NCCL_ALGO_COLLNET][NCCL_PROTO_LL128] =
     getNthreads("NCCL_LL128_NTHREADS", ncclParamLl128Nthreads(), NCCL_LL128_MAX_NTHREADS/4, NCCL_LL128_MAX_NTHREADS, NCCL_LL128_MAX_NTHREADS);
 
   int nNodes = comm->nNodes;
@@ -102,9 +102,7 @@ ncclResult_t ncclTopoTuneModel(struct ncclComm* comm, int minCompCap, int maxCom
   if (cpuArch == NCCL_TOPO_CPU_ARCH_POWER) hwLat[NCCL_HW_PCI][NCCL_ALGO_TREE][NCCL_PROTO_SIMPLE] = hwLat[NCCL_HW_PCI][NCCL_ALGO_RING][NCCL_PROTO_SIMPLE];
   float ppn = (float)nRanks / nNodes; // if ppn < 2, then we are sending/receiving at the same GPU through the NIC, apply some bw discount
 
-  // MSCCL has no topo graph and it is sharing the information with ring graph.
-  // MSCCL algo is disabled by default and only can be used by setting NCCL_AGLO env. So the tuning does not matter at this point.
-  struct ncclTopoGraph* graphs[NCCL_NUM_ALGORITHMS] = { treeGraph, ringGraph, ringGraph, collNetGraph };
+  struct ncclTopoGraph* graphs[NCCL_NUM_ALGORITHMS] = { treeGraph, ringGraph, collNetGraph };
   int intraHw[NCCL_NUM_ALGORITHMS], hw[NCCL_NUM_ALGORITHMS];
   for (int a=0; a<NCCL_NUM_ALGORITHMS; a++) intraHw[a] = graphs[a]->typeIntra == LINK_NVL ? NCCL_HW_NVLINK : NCCL_HW_PCI;
   for (int a=0; a<NCCL_NUM_ALGORITHMS; a++) hw[a] = nNodes == 1 ? intraHw[a] : NCCL_HW_NET;
@@ -118,24 +116,9 @@ ncclResult_t ncclTopoTuneModel(struct ncclComm* comm, int minCompCap, int maxCom
       nNodes;
 
     for (int a=0; a<NCCL_NUM_ALGORITHMS; a++) {
-      for (int p=0; p<NCCL_NUM_PROTOCOLS; p++) {
-        if (a == NCCL_ALGO_MSCCL) {
-          // MSCCL algorithms have a range for each algorithm and are decided by ncclTopoGetAlgoTime function.
-          comm->latencies[coll][a][p] = 0.;
-          comm->bandwidths[coll][a][p] = 1.;
-          continue;
-        }
-      }
       if (coll != ncclFuncAllReduce && a != NCCL_ALGO_RING) continue;
 
       for (int p=0; p<NCCL_NUM_PROTOCOLS; p++) {
-        if (a == NCCL_ALGO_MSCCL) {
-          // MSCCL algorithms have a range for each algorithm and are decided by ncclTopoGetAlgoTime function.
-          comm->latencies[coll][a][p] = 0.;
-          comm->bandwidths[coll][a][p] = 1.;
-          continue;
-        }
-
         float speed = nNodes <= 2 || a == NCCL_ALGO_COLLNET ? graphs[a]->speedIntra : graphs[a]->speedInter;
         float busBw = graphs[a]->nChannels * speed;
 
@@ -183,7 +166,7 @@ ncclResult_t ncclTopoTuneModel(struct ncclComm* comm, int minCompCap, int maxCom
   // Protocols/Algorithms enable/disable, and user overrides.
   // All are enabled except ll128 which is enabled by default only in certain cases.
   int protoEnable[NCCL_NUM_PROTOCOLS] = { 1, 2, 1 };
-  int algoEnable[NCCL_NUM_ALGORITHMS] = { 1, 1, 0, 1 }; // MSCCL algorithms are disabled by default
+  int algoEnable[NCCL_NUM_ALGORITHMS] = { 1, 1, 1 };
 
   const char *protoStr = getenv("NCCL_PROTO");
   if (protoStr) {
@@ -199,7 +182,7 @@ ncclResult_t ncclTopoTuneModel(struct ncclComm* comm, int minCompCap, int maxCom
   if (comm->collNetSupport == 0) {
     algoEnable[NCCL_ALGO_COLLNET] = 0;
     // If user has hard set NCCL_ALGO=COLLNET, ignore it
-    if (algoEnable[NCCL_ALGO_RING] == 0 && algoEnable[NCCL_ALGO_TREE] == 0 && algoEnable[NCCL_ALGO_MSCCL] == 0) {
+    if (algoEnable[NCCL_ALGO_RING] == 0 && algoEnable[NCCL_ALGO_TREE] == 0) {
       algoEnable[NCCL_ALGO_RING] = algoEnable[NCCL_ALGO_TREE] = 1;
       if (comm->rank == 0) WARN("CollNet is not supported or fails to initialize, ignoring NCCL_ALGO=COLLNET");
     }
@@ -253,7 +236,6 @@ ncclResult_t ncclTopoTuneModel(struct ncclComm* comm, int minCompCap, int maxCom
   comm->threadThresholds[NCCL_ALGO_RING][NCCL_PROTO_LL] *= nRanks;
   comm->threadThresholds[NCCL_ALGO_COLLNET][NCCL_PROTO_SIMPLE] = 512;
 
-  // TODO: MSCCL needs such thresholds as well in the future.
   // Override defaults with user env
   char* str = getenv("NCCL_THREAD_THRESHOLDS");
   if (str) {
@@ -267,16 +249,13 @@ ncclResult_t ncclTopoTuneModel(struct ncclComm* comm, int minCompCap, int maxCom
     }
   }
 
-  INFO(NCCL_INIT, "threadThresholds %ld/%ld/%ld | %ld/%ld/%ld | %ld/%ld/%ld | %ld/%ld/%ld",
+  INFO(NCCL_INIT, "threadThresholds %ld/%ld/%ld | %ld/%ld/%ld | %ld/%ld/%ld",
       comm->threadThresholds[NCCL_ALGO_TREE][NCCL_PROTO_LL],
       comm->threadThresholds[NCCL_ALGO_TREE][NCCL_PROTO_LL128],
       comm->threadThresholds[NCCL_ALGO_TREE][NCCL_PROTO_SIMPLE],
       comm->threadThresholds[NCCL_ALGO_RING][NCCL_PROTO_LL],
       comm->threadThresholds[NCCL_ALGO_RING][NCCL_PROTO_LL128],
       comm->threadThresholds[NCCL_ALGO_RING][NCCL_PROTO_SIMPLE],
-      comm->threadThresholds[NCCL_ALGO_MSCCL][NCCL_PROTO_LL],
-      comm->threadThresholds[NCCL_ALGO_MSCCL][NCCL_PROTO_LL128],
-      comm->threadThresholds[NCCL_ALGO_MSCCL][NCCL_PROTO_SIMPLE],      
       comm->threadThresholds[NCCL_ALGO_COLLNET][NCCL_PROTO_LL],
       comm->threadThresholds[NCCL_ALGO_COLLNET][NCCL_PROTO_LL128],
       comm->threadThresholds[NCCL_ALGO_COLLNET][NCCL_PROTO_SIMPLE]);
@@ -299,115 +278,11 @@ ncclResult_t ncclTopoGetAlgoTime(struct ncclInfo* info, int algorithm, int proto
   }
   int logSize = log2i(info->nBytes>>6);
   if (algorithm == NCCL_ALGO_TREE && logSize < 23) bw *= treeCorrectionFactor[protocol][logSize];
-  if (info->nChannels != 0) bw = bw / info->comm->nChannelsOrgNCCL * info->nChannels;
+  if (info->nChannels != 0) bw = bw / info->comm->nChannels * info->nChannels;
   if (algorithm == NCCL_ALGO_RING && protocol == NCCL_PROTO_SIMPLE && info->comm->nNodes > 1
       && info->coll == ncclFuncAllReduce && info->nBytes >= info->comm->nRanks/16.0*65536) lat *= 1.9; // Plateau effect of ring
   // Tree pipelining saves latency in aggregation cases
   int latCount = algorithm == NCCL_ALGO_RING ? numPipeOps : DIVUP(numPipeOps, NCCL_MAX_WORK_ELEMENTS);
   *time = lat * latCount + (info->nBytes) / (1000 * bw);
-  return ncclSuccess;
-}
-
-// checks whether the collective is inplace
-ncclResult_t mscclInPlaceTotalCountHelper(struct ncclInfo* info, int* inPlace, int* totalCount){
-  switch (info->coll) {
-    case ncclFuncAllReduce:
-    case ncclFuncCustomCollective:
-    case ncclFuncBroadcast:
-    case ncclFuncReduce:
-      *inPlace = (info->sendbuff == info->recvbuff);
-      *totalCount = info->count;
-      break;
-    case ncclFuncAllToAll:
-      *inPlace = (info->sendbuff == info->recvbuff);
-      *totalCount = info->count * info->comm->nRanks;
-      break;
-    case ncclFuncAllGather:
-      *inPlace = ((char*)info->sendbuff == (char*)info->recvbuff + (ssize_t)(info->comm->rank * info->count * ncclTypeSize(info->datatype)));
-      *totalCount = info->count * info->comm->nRanks;
-      break;
-    case ncclFuncReduceScatter:
-      *inPlace = ((char*)info->recvbuff == (char*)info->sendbuff + (ssize_t)(info->comm->rank * info->count * ncclTypeSize(info->datatype)));
-      *totalCount = info->count * info->comm->nRanks;
-      break;
-    case ncclFuncSend:    
-    case ncclFuncRecv:    
-    case ncclFuncSendRecv:
-    default:
-      *inPlace = 0;
-      *totalCount = info->count;
-      break;
-  }
-  return ncclSuccess;
-}
-
-ncclResult_t ncclTopoGetMSCCLAlgo(struct ncclInfo* info) {
-  if (info->opFull.op == ncclDevSum || info->opFull.op == ncclDevProd || info->opFull.op == ncclDevMax || info->opFull.op == ncclDevMin){
-    int inPlace;
-    int totalCount;
-    NCCLCHECK(mscclInPlaceTotalCountHelper(info, &inPlace, &totalCount));
-    struct mscclHostCommInfo* mscclHostComm = &info->comm->mscclHostComm;
-    if (mscclHostComm->nMscclRegistrations > 0) {
-      for (int i = 0; i < mscclHostComm->nMscclRegistrations; ++i) {
-        struct mscclRegistration *reg = &mscclHostComm->mscclRegistrations[i];
-        if (reg->minBytes <= info->nBytes && (info->nBytes < reg->maxBytes || reg->maxBytes == -1)) {
-          struct mscclAlgorithm* mscclAlgo = &mscclHostComm->mscclDevComm.mscclAlgos[reg->algoIndex];
-          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->isValid is: %d\n", mscclAlgo->isValid);
-          // printf("\n [TopoGet1_LYD INFO]info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol] is: %d\n", info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol]);
-          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->collectiveType is: %d\n", mscclAlgo->collectiveType);
-          // printf("\n [TopoGet1_LYD INFO]info->coll is: %d\n", info->coll);
-          // printf("\n [TopoGet1_LYD INFO]inPlace is: %d\n", inPlace);
-          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->inPlace is: %d\n", mscclAlgo->inPlace);
-          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->ngpus is: %d\n", mscclAlgo->ngpus);
-          // printf("\n [TopoGet1_LYD INFO]info->comm->nRanks is: %d\n", info->comm->nRanks);
-          // printf("\n [TopoGet1_LYD INFO]totalCount is: %d\n", totalCount);
-          // printf("\n [TopoGet1_LYD INFO]mscclAlgo->nchunksPerLoop is: %d\n", mscclAlgo->nchunksPerLoop);
-          if ((mscclAlgo->isValid) && (info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol] > 0) && (mscclAlgo->collectiveType == info->coll) 
-              && (inPlace == mscclAlgo->inPlace) && (mscclAlgo->ngpus == info->comm->nRanks) && ((totalCount % mscclAlgo->nchunksPerLoop) == 0)) {
-            info->algorithm = NCCL_ALGO_MSCCL;
-            info->protocol = reg->protocol;
-            info->mscclInfo.mscclAlgoIndex = reg->algoIndex;
-            // printf("\n[TopoGet1_LYD INFO]info->algorithm is: %d\n", info->algorithm);
-            return ncclSuccess;
-          }
-        }
-      }
-    } else {
-      for (int i=0; i<mscclHostComm->numberOfMSCCLAlgorithms; i++){
-        struct mscclAlgorithm* mscclAlgo = &mscclHostComm->mscclDevComm.mscclAlgos[i];
-        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->isValid is: %d\n", mscclAlgo->isValid);
-        // printf("\n [TopoGet2_LYD INFO]info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol] is: %d\n", info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol]);
-        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->collectiveType is: %d\n", mscclAlgo->collectiveType);
-        // printf("\n [TopoGet2_LYD INFO]info->coll is: %d\n", info->coll);
-        // printf("\n [TopoGet2_LYD INFO]inPlace is: %d\n", inPlace);
-        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->inPlace is: %d\n", mscclAlgo->inPlace);
-        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->ngpus is: %d\n", mscclAlgo->ngpus);
-        // printf("\n [TopoGet2_LYD INFO]info->comm->nRanks is: %d\n", info->comm->nRanks);
-        // printf("\n [TopoGet2_LYD INFO]totalCount is: %d\n", totalCount);
-        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->nchunksPerLoop is: %d\n", mscclAlgo->nchunksPerLoop);
-        // printf("\n [TopoGet2_LYD INFO]info->nBytes is: %d\n", info->nBytes);
-        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->minBytes is: %d\n", mscclAlgo->minBytes);
-        // printf("\n [TopoGet2_LYD INFO]mscclAlgo->maxBytes is: %d\n", mscclAlgo->maxBytes);
-        if ((mscclAlgo->isValid) && (info->comm->bandwidths[info->coll][NCCL_ALGO_MSCCL][mscclAlgo->protocol] > 0) 
-            && (mscclAlgo->collectiveType == info->coll) && (inPlace == mscclAlgo->inPlace) && (mscclAlgo->ngpus == info->comm->nRanks)
-            && ((totalCount % mscclAlgo->nchunksPerLoop) == 0) && (info->nBytes >= mscclAlgo->minBytes) && (info->nBytes < mscclAlgo->maxBytes)) {
-          info->algorithm = NCCL_ALGO_MSCCL;
-          info->protocol = mscclAlgo->protocol;
-          info->mscclInfo.mscclAlgoIndex = i;
-          // printf("\n[TopoGet2_LYD/home/ldai8/bash/megatron/megatron1_large_model_parallel INFO]info->algorithm is: %d\n", info->algorithm);
-          // printf("\n[TopoGet2_LYD INFO]info->mscclInfo.mscclAlgoIndex is: %d\n", info->mscclInfo.mscclAlgoIndex);
-          return ncclSuccess;
-        }
-        // force algo to msccl by LYD
-        info->algorithm = NCCL_ALGO_MSCCL;
-        info->protocol = mscclAlgo->protocol;
-        info->mscclInfo.mscclAlgoIndex = i; 
-        return ncclSuccess; 
-      }
-    }
-  }
-  info->algorithm = -1;
-  info->protocol = -1;
-  info->mscclInfo.mscclAlgoIndex = -1;
   return ncclSuccess;
 }

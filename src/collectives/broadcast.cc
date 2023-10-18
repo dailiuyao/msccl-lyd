@@ -15,7 +15,6 @@ ncclResult_t ncclBroadcast(const void* sendbuff, void* recvbuff, size_t count, n
   struct ncclInfo info = { ncclFuncBroadcast, "Broadcast",
     sendbuff, recvbuff, count, datatype, ncclSum, root, comm, stream, /* Args */
     BROADCAST_CHUNKSTEPS, BROADCAST_SLICESTEPS };
-  info.algorithm = -1;    
   return ncclEnqueueCheck(&info);
 }
 /* Deprecated original "in place" function, similar to MPI */
