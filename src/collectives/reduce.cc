@@ -15,6 +15,5 @@ ncclResult_t ncclReduce(const void* sendbuff, void* recvbuff, size_t count,
   struct ncclInfo info = { ncclFuncReduce, "Reduce",
     sendbuff, recvbuff, count, datatype, op, root, comm, stream, /* Args */
     REDUCE_CHUNKSTEPS, REDUCE_SLICESTEPS };
-  info.algorithm = -1;    
   return ncclEnqueueCheck(&info);
 }

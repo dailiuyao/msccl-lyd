@@ -1,5 +1,5 @@
 /*************************************************************************
- * Copyright (c) 2019-2022, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2019-2020, NVIDIA CORPORATION. All rights reserved.
  *
  * See LICENSE.txt for license information
  ************************************************************************/
@@ -7,16 +7,11 @@
 #ifndef XML_H_
 #define XML_H_
 
-#include "nccl.h"
-#include "debug.h"
-#include "checks.h"
-#include <stdlib.h>
-
 // A few constraints to make the implementation easy
 #define MAX_STR_LEN 255
 #define MAX_ATTR_COUNT 16
-#define MAX_SUBS 1024
-#define MAX_NODES (1<<12) 
+#define MAX_SUBS 32
+#define MAX_NODES 1024
 
 #define NODE_TYPE_NONE 0
 #define NODE_TYPE_OPEN 1
@@ -43,7 +38,7 @@ struct ncclXml {
 
 /* File functions */
 #define NCCL_TOPO_XML_VERSION 1
-ncclResult_t ncclTopoGetXmlFromFile(const char* xmlTopoFile, struct ncclXml* xml, int warn);
+ncclResult_t ncclTopoGetXmlFromFile(const char* xmlTopoFile, struct ncclXml* xml);
 ncclResult_t ncclTopoDumpXmlToFile(const char* xmlTopoFile, struct ncclXml* xml);
 #define NCCL_GRAPH_XML_VERSION 1
 ncclResult_t ncclTopoGetXmlGraphFromFile(const char* xmlGraphFile, struct ncclXml* xml);
@@ -54,10 +49,6 @@ ncclResult_t ncclTopoFillNet(struct ncclXml* xml, const char* pciPath, const cha
 
 /* Remove unneeded parts */
 ncclResult_t ncclTopoTrimXml(struct ncclXml* xml);
-
-/* msccl file loaders */
-ncclResult_t mscclGetXmlAlgoFromFile(const char* xmlGraphFile, struct ncclXml* xml, int myrank);
-ncclResult_t mscclGetXmlConfigFromFile(const char* xmlGraphFile, struct ncclXml* xml);
 
 /**************/
 /* XML Struct */
@@ -83,13 +74,6 @@ static ncclResult_t xmlGetAttr(struct ncclXmlNode* node, const char* attrName, c
   return ncclSuccess;
 }
 
-static ncclResult_t xmlAttrExists(struct ncclXmlNode* node, const char* attrName, int* exists) {
-  const char* result;
-  NCCLCHECK(xmlGetAttr(node, attrName, &result));
-  *exists = result == NULL ? 0 : 1;
-  return ncclSuccess;
-}
-
 static ncclResult_t xmlGetAttrStr(struct ncclXmlNode* node, const char* attrName, const char** value) {
   NCCLCHECK(xmlGetAttr(node, attrName, value));
   if (*value == NULL) {
@@ -104,21 +88,6 @@ static ncclResult_t xmlGetAttrInt(struct ncclXmlNode* node, const char* attrName
   *value = strtol(str, NULL, 0);
   return ncclSuccess;
 }
-
-static ncclResult_t xmlGetAttrInt64_t(struct ncclXmlNode* node, const char* attrName, int64_t* value) {
-  const char* str;
-  NCCLCHECK(xmlGetAttrStr(node, attrName, &str));
-  *value = strtoll(str, NULL, 0);
-  return ncclSuccess;
-}
-
-static ncclResult_t xmlGetAttrIntDefault(struct ncclXmlNode* node, const char* attrName, int* value, int defaultValue) {
-  const char* str;
-  NCCLCHECK(xmlGetAttr(node, attrName, &str));
-  *value = str ? strtol(str, NULL, 0) : defaultValue;
-  return ncclSuccess;
-}
-
 
 static ncclResult_t xmlGetAttrFloat(struct ncclXmlNode* node, const char* attrName, float* value) {
   const char* str;
@@ -163,18 +132,6 @@ static ncclResult_t xmlSetAttr(struct ncclXmlNode* node, const char* attrName, c
     strncpy(node->attrs[index].key, attrName, MAX_STR_LEN);
     node->attrs[index].key[MAX_STR_LEN] = '\0';
   }
-  strncpy(node->attrs[index].value, value, MAX_STR_LEN);
-  node->attrs[index].value[MAX_STR_LEN] = '\0';
-  return ncclSuccess;
-}
-
-static ncclResult_t xmlSetAttrIfUnset(struct ncclXmlNode* node, const char* attrName, const char* value) {
-  int index;
-  NCCLCHECK(xmlGetAttrIndex(node, attrName, &index));
-  if (index != -1) return ncclSuccess;
-  index = node->nAttrs++;
-  strncpy(node->attrs[index].key, attrName, MAX_STR_LEN);
-  node->attrs[index].key[MAX_STR_LEN] = '\0';
   strncpy(node->attrs[index].value, value, MAX_STR_LEN);
   node->attrs[index].value[MAX_STR_LEN] = '\0';
   return ncclSuccess;

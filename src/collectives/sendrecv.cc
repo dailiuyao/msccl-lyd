@@ -1,5 +1,5 @@
 /*************************************************************************
- * Copyright (c) 2015-2022, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2015-2020, NVIDIA CORPORATION. All rights reserved.
  *
  * See LICENSE.txt for license information
  ************************************************************************/
@@ -13,10 +13,9 @@ NCCL_API(ncclResult_t, ncclSend, const void* sendbuff, size_t count, ncclDataTyp
 ncclResult_t ncclSend(const void* sendbuff, size_t count, ncclDataType_t datatype, int peer,
     ncclComm_t comm, cudaStream_t stream) {
   NVTX3_FUNC_RANGE_IN(nccl_domain);
-  struct ncclInfo info = { ncclFuncSend, "Send",
-    NULL, (void*)sendbuff, count, datatype, ncclSum, peer, comm, stream, /* Args */
+  struct ncclInfo info = { ncclFuncSendRecv, "Send",
+    sendbuff, NULL, count, datatype, ncclSum, peer, comm, stream, /* Args */
     1, 1 };
-  info.algorithm = -1;    
   ncclResult_t ret;
   NCCLCHECK(ncclGroupStart());
   ret = ncclEnqueueCheck(&info);
@@ -29,10 +28,9 @@ NCCL_API(ncclResult_t, ncclRecv, void* recvbuff, size_t count, ncclDataType_t da
 ncclResult_t ncclRecv(void* recvbuff, size_t count, ncclDataType_t datatype, int peer,
     ncclComm_t comm, cudaStream_t stream) {
   NVTX3_FUNC_RANGE_IN(nccl_domain);
-  struct ncclInfo info = { ncclFuncRecv, "Recv",
+  struct ncclInfo info = { ncclFuncSendRecv, "Recv",
     NULL, recvbuff, count, datatype, ncclSum, peer, comm, stream, /* Args */
     1, 1 };
-  info.algorithm = -1;    
   ncclResult_t ret;
   NCCLCHECK(ncclGroupStart());
   ret = ncclEnqueueCheck(&info);
