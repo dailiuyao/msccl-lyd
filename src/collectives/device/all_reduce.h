@@ -67,6 +67,7 @@ namespace {
       offset = calcOffset(chunk);
       nelem = min(realChunkSize, size-offset);
       prims.send(offset, nelem);
+      // printf("\n[LYD INFO all_reduce.h in NCCL] nelem is: %d\n", nelem);
 
       // k-2 steps: reduce and copy to next GPU
       for (int j=2; j<nranks; ++j) {
