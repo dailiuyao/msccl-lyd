@@ -167,9 +167,9 @@ namespace {
           lyd_msccl_chunk1_time = clock64(); 
           chunk_msccl_iteration_lyd = gridOffset/chunkSize;
           double time_msccl_between_chunks = ((double)(lyd_msccl_chunk1_time - lyd_msccl_chunk0_time))/1.41e3; 
-          if (tid == 0) {
-            printf("[LYD INFO] T in MSCCL (loopsize=%ld thisNelem=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", sizePerMscclChunk, thisNelem, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
-          }
+          
+          if (blockIdx.x == 0) printf("[LYD INFO] T in MSCCL (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+          
           
           if (msccltran->type == MSCCL_SEND)
             prims.sendWithBarrier(srcoffset, thisNelem); // LL.send is the only situation where there is no barrier at the end.
