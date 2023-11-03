@@ -105,8 +105,15 @@ namespace {
     const int64_t workIndex = ncclShmem.mscclShmem.workIndex;
     volatile struct mscclFlag* mscclFlags = ncclShmem.mscclShmem.flags;
 
-    clock_t lyd_msccl_chunk0_time, lyd_msccl_chunk1_time;
+    volatile unsigned long long lyd_msccl_chunk0_time = clock64();
+    volatile unsigned long long lyd_msccl_chunk1_time = clock64();
+    volatile int chunk_msccl_iteration_lyd; 
 
+    if (tid == 0 && bid == 0) {
+      printf("total size in run interpreter() is: %ld\n", size); 
+      printf("for loop size (the MSCCL chunk size) in run interpreter() is: %ld\n", sizePerMscclChunk); 
+      printf("nthreads is: %d\n", nthreads);
+    }
     for (ssize_t gridOffset = 0, iter = 0; gridOffset < sizePerMscclChunk; gridOffset += chunkSize, iter++) {
       ssize_t realChunkSize;
       if (Proto::Id == NCCL_PROTO_SIMPLE) {
@@ -118,15 +125,8 @@ namespace {
       realChunkSize = int(realChunkSize);
       int nelem = min(realChunkSize, sizePerMscclChunk-gridOffset);
        
-      // printf("\n[LYD INFO msccl_interpreter.h] realChunkSize is: %d\n", realChunkSize);
-      // printf("\n[LYD INFO msccl_interpreter.h] nelem is: %d\n", nelem);
-      // printf("\n[LYD INFO msccl_interpreter.h] mscclMaxAllowedCount is: %d\n", mscclMaxAllowedCount);
-      if (gridOffset == 0) lyd_msccl_chunk0_time == clock();
-      // lyd_msccl_chunk1_time = clock(); 
-      // int chunk_msccl_iteration_lyd = gridOffset/chunkSize;
-      // int time_msccl_between_chunks = (int)(lyd_msccl_chunk1_time - lyd_msccl_chunk0_time) / CLOCKS_PER_SEC;
-      // printf("\n [LYD INFO]T_between_chunk in MSCCL of iteration %d is: %d seconds\n", chunk_msccl_iteration_lyd, time_msccl_between_chunks);
-
+      if (gridOffset == 0) lyd_msccl_chunk0_time == clock64();
+      
       ssize_t srcoffset, dstoffset;
       T* srcPointer, * dstPointer;
       int step = 0;
@@ -153,27 +153,24 @@ namespace {
           NPKIT_GPU_ENTER_EVENT(NPKIT_EVENT_DEP_CHECK_EXIT, msccltran->numDependences);
         }
 
-        // if (i == 0) {
-        lyd_msccl_chunk1_time = clock(); 
-        int chunk_msccl_iteration_lyd = gridOffset/chunkSize;
-        double time_msccl_between_chunks = ((double)(lyd_msccl_chunk1_time - lyd_msccl_chunk0_time));
-        // printf("\n [LYD INFO] chunk0 in msccl is: %f", (double)lyd_msccl_chunk0_time);
-        // printf("\n [LYD INFO] chunk1 in msccl is: %f", (double)lyd_msccl_chunk1_time);
-        printf("\n [LYD INFO]T_between_chunk in MSCCL of iteration %d is: %f seconds\n", chunk_msccl_iteration_lyd, time_msccl_between_chunks);
-        // }
 
         srcPointer = (msccltran->srcbuffer == MSCCL_INPUT_BUFFER) ? thisInput : ((msccltran->srcbuffer == MSCCL_OUTPUT_BUFFER) ? thisOutput : thisScratch);
         dstPointer = (msccltran->dstbuffer == MSCCL_INPUT_BUFFER) ? thisInput : ((msccltran->dstbuffer == MSCCL_OUTPUT_BUFFER) ? thisOutput : thisScratch);
         prims.setDataPtrs(srcPointer, dstPointer);
         int count = msccltran->count;
-        // printf("\n[LYD INFO msccl_interpreter.h] count is: %d\n", count);
         for (int c = 0; c < count; c += mscclMaxAllowedCount) {
-          // printf("\n[LYD INFO msccl_interpreter.h] nelem is: %d\n", nelem);
           srcoffset = gridOffset + (ssize_t) (msccltran->srcoffset+c) * sizePerMscclChunk;
           dstoffset = gridOffset + (ssize_t) (msccltran->dstoffset+c) * sizePerMscclChunk;
           int thisCount = min(mscclMaxAllowedCount, count-c);
           int thisNelem = nelem*thisCount;
-          // printf("\n[LYD INFO msccl_interpreter.h] thisNelem is: %d\n", thisNelem);
+
+          lyd_msccl_chunk1_time = clock64(); 
+          chunk_msccl_iteration_lyd = gridOffset/chunkSize;
+          double time_msccl_between_chunks = ((double)(lyd_msccl_chunk1_time - lyd_msccl_chunk0_time))/1.41e3; 
+          if (tid == 0) {
+            printf("[LYD INFO] T in MSCCL (loopsize=%ld thisNelem=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", sizePerMscclChunk, thisNelem, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+          }
+          
           if (msccltran->type == MSCCL_SEND)
             prims.sendWithBarrier(srcoffset, thisNelem); // LL.send is the only situation where there is no barrier at the end.
           else if (msccltran->type == MSCCL_RECV)
