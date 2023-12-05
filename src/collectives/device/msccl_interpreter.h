@@ -109,11 +109,12 @@ namespace {
     volatile unsigned long long lyd_msccl_chunk1_time = clock64();
     volatile int chunk_msccl_iteration_lyd; 
 
-    if (tid == 0 && bid == 0) {
-      printf("total size in run interpreter() is: %ld\n", size); 
-      printf("for loop size (the MSCCL chunk size) in run interpreter() is: %ld\n", sizePerMscclChunk); 
-      printf("nthreads is: %d\n", nthreads);
-    }
+    // profile by lyd
+    // if (tid == 0 && bid == 0) {
+    //   printf("total size in run interpreter() is: %ld\n", size); 
+    //   printf("for loop size (the MSCCL chunk size) in run interpreter() is: %ld\n", sizePerMscclChunk); 
+    //   printf("nthreads is: %d\n", nthreads);
+    // }
     for (ssize_t gridOffset = 0, iter = 0; gridOffset < sizePerMscclChunk; gridOffset += chunkSize, iter++) {
       ssize_t realChunkSize;
       if (Proto::Id == NCCL_PROTO_SIMPLE) {
@@ -171,13 +172,16 @@ namespace {
           
           
           if (msccltran->type == MSCCL_SEND){
-            if (blockIdx.x == 0) printf("[LYD INFO] T in MSCCL MSCCL_SEND (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+            // profile by lyd
+            // printf("[LYD INFO] T in MSCCL MSCCL_SEND (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
             prims.sendWithBarrier(srcoffset, thisNelem); // LL.send is the only situation where there is no barrier at the end.
           } else if (msccltran->type == MSCCL_RECV){
-            if (blockIdx.x == 0) printf("[LYD INFO] T in MSCCL MSCCL_RECV (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+            // profile by lyd
+            // printf("[LYD INFO] T in MSCCL MSCCL_RECV (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
             prims.recv(dstoffset, thisNelem);
           } else if (msccltran->type == MSCCL_REDUCE) {
-            if (blockIdx.x == 0) printf("[LYD INFO] T in MSCCL MSCCL_REDUCE (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+            // profile by lyd
+            // printf("[LYD INFO] T in MSCCL MSCCL_REDUCE (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
             int numReductions = msccltran->numReductions;
             if (thisNelem < nthreads){
               NPKIT_GPU_ENTER_EVENT(NPKIT_EVENT_REDUCE_ENTRY, thisNelem*sizeof(T));
@@ -208,19 +212,24 @@ namespace {
             }
             if (c == 0) step += (numReductions-1); // only advance step once!
           } else if (msccltran->type == MSCCL_RECV_COPY_SEND){
-            if (blockIdx.x == 0) printf("[LYD INFO] T in MSCCL MSCCL_RECV_COPY_SEND (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+            // profile by lyd
+            // printf("[LYD INFO] T in MSCCL MSCCL_RECV_COPY_SEND (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
             prims.recvCopySend(dstoffset, thisNelem);
           } else if (msccltran->type == MSCCL_RECV_REDUCE_SEND){
-            if (blockIdx.x == 0) printf("[LYD INFO] T in MSCCL MSCCL_RECV_REDUCE_SEND (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+            // profile by lyd
+            // printf("[LYD INFO] T in MSCCL MSCCL_RECV_REDUCE_SEND (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
             prims.recvReduceSend(srcoffset, thisNelem);
           } else if (msccltran->type == MSCCL_RECV_REDUCE_COPY_SEND){
-            if (blockIdx.x == 0) printf("[LYD INFO] T in MSCCL MSCCL_RECV_REDUCE_COPY_SEND (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+            // profile by lyd
+            // printf("[LYD INFO] T in MSCCL MSCCL_RECV_REDUCE_COPY_SEND (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
             prims.recvReduceCopySend(srcoffset, dstoffset, thisNelem);
           } else if (msccltran->type == MSCCL_RECV_REDUCE_COPY){
-            if (blockIdx.x == 0) printf("[LYD INFO] T in MSCCL MSCCL_RECV_REDUCE_COPY (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+            // profile by lyd
+            // printf("[LYD INFO] T in MSCCL MSCCL_RECV_REDUCE_COPY (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
             prims.recvReduceCopy(srcoffset, dstoffset, thisNelem);
           } else if (msccltran->type == MSCCL_LOCAL_COPY){
-            if (blockIdx.x == 0) printf("[LYD INFO] T in MSCCL MSCCL_LOCAL_COPY (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
+            // profile by lyd
+            // printf("[LYD INFO] T in MSCCL MSCCL_LOCAL_COPY (thisNelem=%d, tid=%d, bid=%d) of chunk %d, step %d, c %d is: %f us\n\n", thisNelem, threadIdx.x, blockIdx.x, chunk_msccl_iteration_lyd, i, c, time_msccl_between_chunks);
             prims.localCopy(srcPointer+srcoffset, dstPointer+dstoffset, thisNelem);
           } else
             return;
