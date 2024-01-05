@@ -71,6 +71,10 @@ namespace {
     const int bid = blockIdx.x;
     struct mscclThreadBlock* mscclTB = &ncclShmem.mscclShmem.mscclTB;
 
+    if (tid==0){
+      printf("DEVICE | runInterpreter | nthreads is: %d\n", nthreads);
+    }
+
     // User pointers for primitives
     T* thisInput = (T*)args->sendbuff;
     T* thisOutput = (T*)args->recvbuff;
@@ -142,6 +146,7 @@ namespace {
             int16_t dependentPointer = msccltran->depencePointer;
             int8_t dependentBid = mscclTB->dependentBid[dependentPointer+tid];
             int16_t dependentStep = mscclTB->dependentStep[dependentPointer+tid];
+            printf("DEVICE | %s:%d | runInterpreter() | step in TB is %d, bid is %d, tid is %d, numDependences is %d, dependentPointer is %d, dependentBid is %d, dependentStep is %d\n",  __FILE__, __LINE__, i, bid, tid, numDependences, dependentPointer, dependentBid, dependentStep);
             uint64_t goalFlag = COMPUTE_FLAG(workIndex, iter, dependentStep);
             while (true){
               uint64_t curFlag = (mscclFlags + dependentBid)->flag;
