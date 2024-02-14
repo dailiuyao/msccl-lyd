@@ -283,10 +283,10 @@ template<typename T, typename RedOp>
 struct RunWorkElement<ncclFuncAllReduce, T, RedOp, NCCL_ALGO_RING, NCCL_PROTO_SIMPLE> {
   __device__ __forceinline__ void run(ncclWorkElem *args) {
     using Proto = ProtoSimple<ALLREDUCE_CHUNKSTEPS/ALLREDUCE_SLICESTEPS, ALLREDUCE_SLICESTEPS>;
-    clock_t start_nccl = clock(); 
+    // clock_t start_nccl = clock(); 
     runRing<T, RedOp, Proto>(args);
-    clock_t end_nccl = clock();
-    if (threadIdx.x == 0) printf("\n[LYD INFO] blockId %d threadID %d ring->index %d RunNCCLRing() time: %d us\n", blockIdx.x, threadIdx.x, (&ncclShmem.channel.ring)->index, (int)((end_nccl - start_nccl)/1410));
+    // clock_t end_nccl = clock();
+    // if (threadIdx.x == 0) printf("\n[LYD INFO] blockId %d threadID %d ring->index %d RunNCCLRing() time: %d us\n", blockIdx.x, threadIdx.x, (&ncclShmem.channel.ring)->index, (int)((end_nccl - start_nccl)/1410));
  
   }
 };
@@ -432,10 +432,10 @@ template<typename T, typename RedOp>
 struct RunWorkElement<ncclFuncAllReduce, T, RedOp, NCCL_ALGO_MSCCL, NCCL_PROTO_SIMPLE> {
   __device__ __forceinline__ void run(ncclWorkElem *args) {
     using Proto = ProtoSimple<MSCCL_CHUNKSTEPS/MSCCL_SLICESTEPS, MSCCL_SLICESTEPS>;
-    clock_t start = clock(); 
+    // clock_t start = clock(); 
     runInterpreter<T, RedOp, Proto>(args, 1);
-    clock_t end = clock();
-    if (threadIdx.x == 0) printf("\n[LYD INFO] blockId %d channelID %d RunInterpreter() time: %d us\n", blockIdx.x, (&ncclShmem.mscclShmem.mscclTB)->channelId, (int)((end - start)/1410));
+    // clock_t end = clock();
+    // if (threadIdx.x == 0) printf("\n[LYD INFO] blockId %d channelID %d RunInterpreter() time: %d us\n", blockIdx.x, (&ncclShmem.mscclShmem.mscclTB)->channelId, (int)((end - start)/1410));
   }
 };
 
