@@ -398,8 +398,8 @@ ncclResult_t ncclTopoGetMSCCLAlgo(struct ncclInfo* info) {
           // printf("\n[TopoGet2_LYD INFO]info->mscclInfo.mscclAlgoIndex is: %d\n", info->mscclInfo.mscclAlgoIndex);
           return ncclSuccess;
         }
-        // force algo to msccl by LYD
-        info->algorithm = NCCL_ALGO_MSCCL;
+        // force algo to NCCL TREE by LYD
+        info->algorithm = NCCL_ALGO_TREE;
         info->protocol = mscclAlgo->protocol;
         info->mscclInfo.mscclAlgoIndex = i; 
         return ncclSuccess; 
