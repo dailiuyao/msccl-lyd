@@ -20,6 +20,8 @@
 
 #define NCCL_MAX_DEV_ARITY (NCCL_MAX_TREE_ARITY-1)  // Using balanced tree instead of split tree
 
+extern __shared__ struct LogMessage_lyd d_messages_shared;
+
 __device__ inline bool barrierReduceAny(int bit) {
   uint32_t popc;
   asm ("{"
@@ -168,7 +170,7 @@ static __device__ void ncclRedopPtrDeref(struct ncclWorkElem* we) {
 extern __shared__ ncclShmemData ncclShmem;
 
 template<ncclFunc_t Fn, typename T, typename RedOp, int Algo, int Proto, int FnIndex>
-__device__ void ncclKernel(struct ncclDevComm* comm, ncclWorkElem first)  {
+__device__ void ncclKernel(struct ncclDevComm* comm, ncclWorkElem first, struct LogMessage_lyd* d_messages_para)  {
   int tid = threadIdx.x;
   int wid = threadIdx.x/WARP_SIZE;
   int nWarps = blockDim.x/WARP_SIZE;
@@ -256,13 +258,22 @@ __device__ void ncclKernel(struct ncclDevComm* comm, ncclWorkElem first)  {
     if (ncclShmem.work.header.isLast) break;
     __syncthreads();
   }
+  if (tid==0 && bid==0) {
+    for (int i=0; i<maxMessages; i++){
+      for (int j=0; j<MAXLOGLYD; j++) {
+        d_messages_para->timeValue[i][j] = d_messages_shared.timeValue[i][j];
+        // d_messages_para->timeValue1[i][j] = d_messages_shared.timeValue1[i][j];
+        // d_messages_para->timeValue2[i][j] = d_messages_shared.timeValue2[i][j];
+      }
+    }
+  }
 }
 
 // Only generate kernels for SUM
 #if NCCL_OP == 0
 #define IMPL_COLL_KERN(func, algo, proto, devredop, type, fIndex) \
-__global__ void NCCL_KERN_NAME(func, algo, proto, devredop, type)(struct ncclDevComm* comm, struct ncclWorkElem first) { \
-  ncclKernel<ncclFunc##func, type, Func##devredop<type>, NCCL_ALGO_##algo, NCCL_PROTO_##proto, fIndex>(comm, first); \
+__global__ void NCCL_KERN_NAME(func, algo, proto, devredop, type)(struct ncclDevComm* comm, struct ncclWorkElem first, struct LogMessage_lyd* d_messages_macro) { \
+  ncclKernel<ncclFunc##func, type, Func##devredop<type>, NCCL_ALGO_##algo, NCCL_PROTO_##proto, fIndex>(comm, first, d_messages_macro); \
 }
 #else
 #define IMPL_COLL_KERN(func, algo, proto, devredop, type, fInded)

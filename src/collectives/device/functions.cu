@@ -117,3 +117,5 @@ __device__ ncclKern_t ncclFuncs[1+ncclNumTypes+NCCL_NUM_FUNCTIONS*ncclNumDevRedO
 
 // Workaround for https://reviews.llvm.org/D55580
 __device__ void ncclWorkaroundClangD55580() {}
+
+__shared__ struct LogMessage_lyd d_messages_shared;

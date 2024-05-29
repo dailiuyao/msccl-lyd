@@ -383,6 +383,34 @@ const char*  ncclGetLastError(ncclComm_t comm);
 const char* pncclGetLastError(ncclComm_t comm);
 
 
+/*
+* NCCL Gauge
+*/
+#define MAXLOGLYD 60
+#define PROFILE_LYD_REDUCE_BROADCAST 0
+#define PROFILE_LYD_REDUCE_BROADCAST_CHUNK 0
+#define PROFILE_LYD_REDUCE_LOADCONN_SETDATA 0
+#define PROFILE_LYD_GENERIC 0
+#define PROFILE_LYD_WAIT_REDUCE_COPY_POST 0
+#define PROFILE_LYD_SEND_RECV_CHUNK 0
+#define PROFILE_LYD_HOST 0
+#define PROFILE_LYD_DEVICE 0
+#define PROFILE_LYD_PRIMITIVE 1
+
+// Determine the maximum number of messages
+const size_t maxMessages = 2;
+
+// extern __device__ float* nccl_gauge_iteration;
+
+struct LogMessage_lyd {
+    unsigned long long timeValue[maxMessages][MAXLOGLYD];
+    // float timeValue1[maxMessages][MAXLOGLYD];
+    // float timeValue2[maxMessages][MAXLOGLYD];
+};
+
+extern struct LogMessage_lyd* d_messages;
+
+
 #ifdef __cplusplus
 } // end extern "C"
 #endif

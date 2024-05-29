@@ -237,6 +237,7 @@ static ncclResult_t commAlloc(ncclComm_t* comret, int ndev, int rank) {
 
   comm->argsptrs[0] = &comm->devComm;
   comm->argsptrs[1] = &comm->args;
+  comm->argsptrs[2] = &d_messages;
   comm->collNetSupport = 0;
 
   NCCLCHECK(ncclCalloc(&comm->asyncOps, NCCL_MAX_OPS));

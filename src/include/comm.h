@@ -173,7 +173,7 @@ struct ncclComm {
   int* intraCGMode; // Whether we can use CUDA9 CGMD or not
   int* intraCC; // Only to check all have the same ComputeCap and disable CGMode if not
   struct ncclWorkElem args;
-  void* argsptrs[2];
+  void* argsptrs[3]; // change to 3 for the case of gauge by LYD
 
   struct ncclProxyState proxyState;
 
